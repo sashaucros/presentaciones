@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Benchmark de Recurrencias y Suscripciones — PagueloFácil</title>
+<style>
+  :root{
+    --green:#0f7b3f;
+    --green-600:#12924a;
+    --green-050:#e9f6ee;
+    --ink:#14211b;
+    --muted:#5a6b62;
+    --line:#dfe6e1;
+    --card:#ffffff;
+    --amber:#b7791f;
+    --amber-bg:#fdf3e2;
+    --red:#b3352f;
+    --slate:#0d1b14;
+    --indigo:#3949ab;
+    --indigo-bg:#eef1ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    color:var(--ink);background:#c9d1cd;
+    -webkit-font-smoothing:antialiased;
+  }
+  .deck{position:relative;height:100vh;overflow-y:scroll;padding:24px 0 60px;scroll-snap-type:y proximity;scroll-behavior:smooth;}
+  /* Página 16:9 (13.333in x 7.5in) con contenido centrado */
+  .slide{
+    position:relative;scroll-snap-align:center;
+    width:13.333in;height:7.5in;
+    background:#fff;margin:0 auto 22px;
+    padding:0.42in 0.62in;
+    box-shadow:0 3px 16px rgba(0,0,0,.18);
+    display:flex;flex-direction:column;justify-content:center;
+    overflow:hidden;
+  }
+  .inner{width:100%;margin:0 auto;}
+  h1,h2,h3{margin:0;line-height:1.15;}
+  h1{font-size:38px;font-weight:800;letter-spacing:-.02em;}
+  h2{font-size:24px;font-weight:800;letter-spacing:-.01em;color:var(--slate);}
+  h3{font-size:14.5px;font-weight:700;}
+  p{line-height:1.45;color:var(--ink);}
+  .kicker{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:10px;}
+  .kicker.i{color:var(--indigo);}
+  .lead{font-size:15px;color:var(--muted);line-height:1.5;}
+  .rule{height:4px;width:58px;background:var(--green);border-radius:4px;margin:12px 0 18px;}
+  .rule.i{background:var(--indigo);}
+  /* Portada */
+  .title{background:#0b3a22;}
+  .title h1{color:#fff;font-size:46px;max-width:100%;}
+  .title .sub{color:#bfe6cd;font-size:17px;margin-top:18px;line-height:1.5;}
+  .title .meta{margin-top:34px;color:#8fc7a5;font-size:12.5px;border-top:1px solid #1c5537;padding-top:16px;line-height:1.5;}
+  .badge{display:inline-block;background:#12924a;color:#eafff2;font-weight:700;font-size:11px;padding:6px 12px;border-radius:999px;letter-spacing:.06em;}
+  .grid{display:grid;gap:12px;}
+  .g2{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr 1fr;}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 15px;}
+  .card h3{margin-bottom:4px;}
+  .card .role{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;}
+  .card p{font-size:12px;color:var(--muted);margin:4px 0 0;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--green-050);color:var(--green);border:1px solid #cfe9d8;}
+  .pill.b{background:var(--indigo-bg);color:var(--indigo);border-color:#dfe3ff;}
+  ul.clean{margin:7px 0 0;padding-left:0;list-style:none;}
+  ul.clean li{position:relative;padding-left:18px;margin:6px 0;font-size:12.5px;line-height:1.4;color:var(--ink);}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:7px;width:6px;height:6px;border-radius:2px;background:var(--green);}
+  ul.clean.i li::before{background:var(--indigo);}
+  ul.tight li{margin:4px 0;font-size:12px;}
+  .colhead{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:5px;}
+  table{border-collapse:collapse;width:100%;font-size:10.5px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;table-layout:fixed;}
+  th,td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--line);border-right:1px solid #eef1ef;word-wrap:break-word;}
+  th:first-child,td:first-child{text-align:left;font-weight:600;width:26%;}
+  thead th{background:#0b3a22;color:#eafff2;font-weight:700;font-size:10px;border-color:#164a2e;}
+  thead th.pf{background:var(--green-600);}
+  tbody tr:nth-child(even){background:#fafbfa;}
+  td.pfcol{background:#f0f9f3;font-weight:600;}
+  .y{color:var(--green);font-weight:800;}
+  .n{color:#b8c2bb;font-weight:800;}
+  .p{color:var(--amber);font-weight:800;font-size:9.5px;}
+  table.reg{font-size:9px;}
+  table.reg th,table.reg td{padding:4px 2px;}
+  table.reg th:first-child,table.reg td:first-child{width:19%;}
+  table.reg thead th{font-size:8.5px;}
+  .legend{font-size:11px;color:var(--muted);margin-top:9px;}
+  .legend b{color:var(--ink);}
+  .callout{border-left:4px solid var(--green);background:var(--green-050);padding:11px 14px;border-radius:0 9px 9px 0;font-size:12.5px;line-height:1.45;}
+  .callout.amber{border-color:var(--amber);background:var(--amber-bg);}
+  .callout.dark{border-color:#12924a;background:#0b3a22;color:#eafff2;}
+  .callout.indigo{border-color:var(--indigo);background:var(--indigo-bg);}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .kpi .k{font-size:12.5px;font-weight:700;color:var(--slate);}
+  .kpi .d{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .q{font-size:12.5px;margin:8px 0;padding-left:24px;position:relative;line-height:1.4;}
+  .q b{color:var(--green);position:absolute;left:0;top:0;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px 24px;}
+  .chips span{font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:#f4faf6;color:var(--ink);}
+  .tag{font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px;display:inline-block;margin-bottom:4px;}
+  .have{border-left:4px solid var(--green);}
+  .lack{border-left:4px solid var(--amber);}
+  .imp{border-left:4px solid var(--amber);background:#fffdf8;}
+  .src{font-size:10.5px;color:var(--muted);margin-top:11px;font-style:italic;}
+  .foot{position:fixed;bottom:0;left:0;right:0;height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-top:1px solid var(--line);font-size:12px;color:var(--muted);z-index:50;}
+  .foot .nav{display:flex;gap:6px;align-items:center;}
+  .foot button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 9px;cursor:pointer;font-size:12px;color:var(--ink);}
+  .foot b{color:var(--green);}
+  @media print{
+    body{background:#fff;}
+    .deck{height:auto;overflow:visible;padding:0;}
+    .slide{box-shadow:none;margin:0;width:13.333in;height:7.5in;page-break-after:always;}
+    .foot{display:none;}
+    @page{size:13.333in 7.5in;margin:0;}
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 · Portada -->
+  <section data-document-role="page" class="slide title">
+    <div class="inner">
+      <span class="badge">Benchmark · 2026</span>
+      <h1 style="margin-top:20px;">Recurrencias y Suscripciones</h1>
+      <p class="sub">Resultados del benchmark, funcionalidades de valor, comparación frente a PagueloFácil (PF), roadmap propio, propuesta de encuesta y KPIs para el portal de suscripciones.</p>
+      <div class="meta">Incluye los hallazgos de Emma (pasarelas de Panamá y referencias globales), el análisis de plataformas de membresía (creator economy), las nuevas plataformas regionales analizadas (<b style="color:#bfe6cd;">Onvopay, Geopagos y CuantoApp</b>) y el roadmap interno ya mapeado por PF (documento Funcionalidades Rec_Sus).</div>
+    </div>
+  </section>
+
+  <!-- 2 · Contexto -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Contexto y hallazgo principal</span>
+      <h2>El cobro recurrente ya es commodity: la batalla es la gestión y la retención</h2>
+      <div class="rule"></div>
+      <ul class="clean">
+        <li>Casi todas las plataformas del benchmark —<b>Stripe, Tilopay, Mercado Pago, PayPal, Onvopay, Geopagos, CuantoApp, CROEM</b> y <b>PF</b>— ya resuelven el cobro recurrente básico. Eso dejó de ser un diferenciador.</li>
+        <li>Donde se gana o se pierde es en la <b>gestión del ciclo de vida y la retención</b>: recuperar pagos fallidos (dunning), autoservicio del cliente, trial / pausa / cambio de plan y notificaciones.</li>
+        <li>La competencia directa de PF son las <b>pasarelas con motor de suscripciones</b>; ahí es donde debemos medirnos.</li>
+        <li><b>PF ya tiene el motor</b> (clientes, planes, suscripciones): el reto no es cobrar, es <b>cerrar la brecha de gestión y experiencia</b>.</li>
+      </ul>
+      <div class="callout dark" style="margin-top:16px;">
+        <b>Hallazgo principal:</b> cobrar de forma recurrente es commodity —PF ya lo hace—. El diferenciador que mueve la aguja es la <b>capa de gestión y retención</b> (dunning inteligente, autoservicio del suscriptor, ciclo de vida y notificaciones), justo donde PF tiene hoy sus mayores brechas.
+      </div>
+      <div class="callout" style="margin-top:12px;">
+        Modelo de PF: <b>Clientes · Planes · Suscripciones</b>, pero con un matiz clave — el <b>cliente es obligatorio</b> y el <b>plan es opcional</b> (solo una plantilla de monto+periodo). El <b>cliente no se afilia solo a un plan</b>: la suscripción la arma el comercio manualmente. En Stripe/PayPal, en cambio, el cliente se suscribe a un plan/precio publicado.
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · Sujetos -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Sujetos del benchmark</span>
+      <h2>Dos grupos analizados</h2>
+      <div class="rule"></div>
+      <div class="grid g2">
+        <div class="card">
+          <span class="pill">Grupo A · Pasarelas / infraestructura</span>
+          <p style="margin-top:8px;color:var(--ink);font-size:12px;">Competencia directa y referencias de arquitectura de cobro recurrente.</p>
+          <ul class="clean tight">
+            <li><b>PagueloFácil</b> — producto propio (motor de suscripciones)</li>
+            <li><b>Yappy</b> — pago móvil líder en Panamá</li>
+            <li><b>Stripe</b> — estándar global de billing</li>
+            <li><b>Tilopay</b> — pasarela regional con suscripciones</li>
+            <li><b>CROEM</b> — pagos recurrentes (tarjeta + ACH)</li>
+            <li><b>Mercado Pago</b> — mejor UX regional del módulo</li>
+            <li><b>PayPal</b> — referencia de modelo y flujo</li>
+            <li><b>Onvopay</b> <span class="pill" style="font-size:9px;padding:1px 7px;">nuevo</span> — orquestador de pagos (CR/LatAm), módulo "ONVO Loop"</li>
+            <li><b>Geopagos</b> <span class="pill" style="font-size:9px;padding:1px 7px;">nuevo</span> — infraestructura de adquirencia LATAM</li>
+            <li><b>CuantoApp</b> <span class="pill" style="font-size:9px;padding:1px 7px;">nuevo</span> — comercio para emprendedores (Panamá)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="pill b">Grupo B · Plataformas de membresía</span>
+          <p style="margin-top:8px;color:var(--ink);font-size:12px;">Referencias de producto y UX en la economía de creadores.</p>
+          <ul class="clean tight">
+            <li><b>Patreon</b> — membresías por niveles, gestión avanzada</li>
+            <li><b>Ko-fi</b> — todo-en-uno (membresía + tienda + tips)</li>
+            <li><b>Buy Me a Coffee</b> — retención y recuperación de bajas</li>
+            <li><b>Substack</b> — suscripción tipo newsletter con paywall</li>
+            <li><b>Fourthwall</b> — membresías white-label + video</li>
+          </ul>
+        </div>
+      </div>
+      <p class="src">Grupo A: hallazgos de Emma + nuevas plataformas regionales (Onvopay, Geopagos, CuantoApp) de videos y screenshots. Grupo B: análisis de los videos y grabaciones del benchmark.</p>
+    </div>
+  </section>
+
+  <!-- 4 · Perfiles A -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Perfiles · Grupo A — Pasarelas</span>
+      <h2>Qué hace cada uno</h2>
+      <div class="rule"></div>
+      <div class="grid g2">
+        <div class="card"><span class="role">Producto propio</span><h3>PagueloFácil</h3><p>Pasarela panameña con motor propio. <b>Cliente obligatorio</b> (de un checkout pagado o creado a mano); el <b>plan es opcional</b> (solo pre-llena monto+periodo). La suscripción se crea manual en un formulario: fecha inicio/fin, monto/periodicidad, "Primer Cargo" sí/no, nº de cobros y tarjeta afiliada o enlace de pago recurrente. <b>Sin autoservicio</b>; cambiar de plan = cancelar y recrear. Reintenta 1 c/5 días, x5.</p></div>
+        <div class="card"><span class="role">Pago móvil líder PA</span><h3>Yappy (Banco General)</h3><p>Botón de pago, QR y Directorio. "Yappy recurrente" es push del cliente. Del lado comercio no hay motor recurrente; "Servicios Plus" es la suscripción del comercio a features, no cobro al cliente.</p></div>
+        <div class="card"><span class="role">Referencia global</span><h3>Stripe</h3><p>Stripe Billing: Productos · Precios · Clientes · Suscripciones. Smart Retries, portal de autoservicio, prorrateo, MRR/churn nativo. No opera métodos locales de Panamá.</p></div>
+        <div class="card"><span class="role">Pasarela regional</span><h3>Tilopay</h3><p>Suscripciones para gimnasios, academias y software. Planes con frecuencias, trial que pasa a cobro, cupones recurrentes, reenviar cobro a otra tarjeta, notif. WhatsApp/SMS/push.</p></div>
+        <div class="card"><span class="role">Recurrentes + ACH</span><h3>CROEM</h3><p>Pagos programados con tarjeta, débito y cuenta bancaria (ACH). Frecuencias flexibles, reportes (histórico, financiero, vencimiento de tarjetas). Alta asistida en 4 pasos.</p></div>
+        <div class="card"><span class="role">Mejor UX regional</span><h3>Mercado Pago</h3><p>Reintenta rechazos, panel de suscriptores con filtros (pausados, cancelados, con problemas, cobrados), acciones directas (modificar monto, pausar, cancelar) y email automático en cada cambio.</p></div>
+        <div class="card" style="grid-column:1 / span 2;"><span class="role">Referencia de modelo</span><h3>PayPal</h3><p>Modelo Producto/Plan/Suscripción (igual a PF). "Manage Subscriptions", cancelación en 1 clic, 100+ monedas, período de prueba. Reintenta cada 5 días, 2 veces por ciclo. Debilidades: upgrade/downgrade engorroso y reportes lentos.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Perfiles B -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Perfiles · Grupo B — Membresías</span>
+      <h2>Qué hace cada uno</h2>
+      <div class="rule"></div>
+      <div class="grid g2">
+        <div class="card"><span class="role">Gestión avanzada</span><h3>Patreon</h3><p>Membresías por niveles. El más completo administrando miembros: Relationship Manager con filtros, reembolsos, pausa, trials de 7 días, gifting, descuentos, insights y API oficial.</p></div>
+        <div class="card"><span class="role">Todo-en-uno</span><h3>Ko-fi</h3><p>Membresías + tips + tienda + comisiones. 5% de comisión, pago directo instantáneo. Tiers con beneficios, roles de Discord, cupos limitados por nivel, export CSV. API solo por webhooks.</p></div>
+        <div class="card"><span class="role">Retención</span><h3>Buy Me a Coffee</h3><p>Membresías mensuales, anuales y vitalicias. Fuerte en retención: recuperación de bajas (descuento de última oportunidad, agendar llamada, encuesta), email marketing propio.</p></div>
+        <div class="card"><span class="role">Newsletter + paywall</span><h3>Substack</h3><p>Suscripción tipo newsletter con contenido de pago. Dashboard de suscriptores (comp, gift, founding), pledges y previews gratis. Sin API oficial.</p></div>
+        <div class="card" style="grid-column:1 / span 2;"><span class="role">White-label + video</span><h3>Fourthwall</h3><p>Membresías white-label (tu dominio, logo y marca). Hosting de video (VOD, colecciones, series), trials y descuentos, DMs segmentados (a todos, por nivel o ex-miembros) y analítica de retención. No permite pausar.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5b · Perfiles nuevas plataformas regionales -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Perfiles · nuevas plataformas regionales (2026)</span>
+      <h2>Onvopay · Geopagos · CuantoApp</h2>
+      <div class="rule"></div>
+      <div class="grid g3">
+        <div class="card"><span class="role">Orquestador de pagos · CR/LatAm</span><h3>Onvopay</h3><p>Pasarela y capa de orquestación (procesadores, ERPs, CRMs, facturación y booking vía API/SDK). Módulo <b>"ONVO Loop"</b>: crea suscripciones para cobrar de forma automática — "vos escogés qué, cuándo y a quién cobrar y tus clientes eligen su método de pago". Suma Productos, Clientes, Links de pago, Links de un solo uso, Cupones, Disputas, Webhooks, Marketplace, Referidos y multi-sede (Sedes).</p></div>
+        <div class="card"><span class="role">Infraestructura de adquirencia · LATAM</span><h3>Geopagos</h3><p>Infraestructura para lanzar adquirentes "de cero en semanas" (SmartPOS, e-commerce/checkout, Tap to Phone, QR, tarjetas). Producto <b>Pagos Recurrentes</b>: ciclos mensual/trimestral/anual, <b>reintentos automáticos configurables</b>, gestión de planes y suscriptores, <b>notificaciones antes del vencimiento</b>, tokenización segura y tasa de recuperación. AI-powered en toda la capa.</p></div>
+        <div class="card"><span class="role">Comercio para emprendedores · Panamá</span><h3>CuantoApp</h3><p>Plataforma de venta online (65.000+ emprendedores; apps iOS/Android). <b>Sin mensualidad</b>: solo cobra comisión cuando el comercio cobra. Ofrece <b>Suscripción</b> (cobrar lo mismo cada mes) y <b>Plan de pagos</b> (dividir un monto en cuotas). Pausar/reanudar/cancelar, editar precio, <b>recuperar cobros fallidos</b> (reintentar/recordatorio), estados de cobro, cobro por <b>WhatsApp</b>/catálogo/link, productos, inventario, cupones y calificaciones.</p></div>
+      </div>
+      <div class="callout" style="margin-top:14px;">Dato diferencial: <b>CuantoApp</b> agrega "Plan de pagos" (dividir un monto en cuotas, estilo BNPL) y cobro por <b>WhatsApp</b>; <b>Onvopay</b> destaca por orquestación multi-procesador + multi-sede; <b>Geopagos</b> por reintentos configurables y avisos de vencimiento en su motor recurrente.</div>
+      <p class="src">Fuente: videos (geopagos, cuanto app 1 y 2) y screenshots del dashboard de Onvopay (ONVO Loop, Productos, Links de pago, Cupones).</p>
+    </div>
+  </section>
+
+  <!-- 6 · Funcionalidades clave + patrones maduros (combinado) -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Funcionalidades de valor · y la brecha de PF</span>
+      <h2>Las que mueven la aguja — y lo que las referencias hacen y PF aún no</h2>
+      <div class="rule"></div>
+      <div class="grid g3">
+        <div class="card"><div class="colhead">Adquisición</div><ul class="clean tight"><li>Enlace / QR del plan e inscripción</li><li>Período de prueba (trial) real</li><li>Cupones y descuentos (promos)</li><li>Checkout transparente: revisión previa al 1er cobro</li></ul></div>
+        <div class="card"><div class="colhead">Cobro &amp; recurrencia</div><ul class="clean tight"><li>Cobro pull iniciado por el comercio</li><li>"Primer cargo" inmediato o diferido</li><li>Multi-frecuencia (semanal → anual)</li><li>Multi-moneda · tokenización · 3DS/PCI</li></ul></div>
+        <div class="card"><div class="colhead">Retención (dunning)</div><ul class="clean tight"><li>Reintentos inteligentes</li><li>Reenviar el cobro a otra tarjeta</li><li>Emails automáticos por intento fallido</li><li>Pausar / reactivar · oferta + motivo en la baja</li></ul></div>
+        <div class="card"><div class="colhead">Gestión de clientes</div><ul class="clean tight"><li>Panel de suscriptores: filtros, estado, export</li><li>Ficha con historial de pagos</li><li>Cancelar / pausar / modificar monto</li><li>Upgrade / downgrade de plan</li></ul></div>
+        <div class="card"><div class="colhead">Comunicación</div><ul class="clean tight"><li>Notificaciones del ciclo de vida</li><li>Email + WhatsApp / SMS / push</li><li>Comprobantes de pago y de suscripción</li><li>Mensaje de bienvenida</li></ul></div>
+        <div class="card"><div class="colhead">Analítica</div><ul class="clean tight"><li>MRR · churn</li><li>Cobros aprobados vs rechazados</li><li>Suscripciones próximas a vencer</li><li>Conversión enlace → suscripción</li></ul></div>
+      </div>
+      <div class="callout dark" style="margin-top:12px;">
+        <b>Patrones maduros donde PF aún no llega:</b> autoservicio del cliente final (actualizar tarjeta, ver facturas, cambiar/cancelar plan) · recuperación de pagos fallidos con reintento inteligente + emails · pausar/reactivar y retención en la baja (motivo + oferta) · transparencia previa al 1er cobro y statement con el nombre del comercio (hoy muestra el de PF → riesgo de disputas).
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · Tabla 1 — recurrencia (con plataformas regionales) -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Tabla comparativa 1 — PF vs pasarelas y plataformas regionales</span>
+      <h2>Funcionalidades de recurrencia</h2>
+      <div class="rule"></div>
+      <table class="reg">
+        <thead>
+          <tr><th>Funcionalidad</th><th class="pf">PF</th><th>Stripe</th><th>Tilopay</th><th>CROEM</th><th>M. Pago</th><th>PayPal</th><th>Onvopay</th><th>Geopagos</th><th>CuantoApp</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Recurrencia pull (iniciada por el comercio)</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Reintentos automáticos</td><td class="pfcol p">Parcial</td><td class="y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Reintento inteligente / configurable</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="y">✓</td><td class="n">—</td><td class="p">n/d</td><td class="y">✓</td><td class="p">Parcial</td></tr>
+          <tr><td>Recuperar cobro fallido (reintentar / recordatorio)</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="y">✓</td><td class="p">n/d</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Reenviar el cobro a otra tarjeta</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="p">n/d</td><td class="p">n/d</td><td class="n">—</td></tr>
+          <tr><td>Período de prueba (trial)</td><td class="pfcol p">Parcial</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="p">n/d</td><td class="n">—</td></tr>
+          <tr><td>Multi-frecuencia (semanal → anual)</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="p">Parcial</td></tr>
+          <tr><td>Plan de pagos / cuotas (estilo BNPL)</td><td class="pfcol n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+          <tr><td>Cupones / descuentos</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="p">n/d</td><td class="p">n/d</td><td class="p">Parcial</td><td class="p">n/d</td><td class="y">✓</td></tr>
+          <tr><td>Pausar / reactivar</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="p">n/d</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="p">n/d</td><td class="y">✓</td></tr>
+          <tr><td>Portal de autoservicio del cliente</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="p">Parcial</td><td class="p">n/d</td><td class="p">Parcial</td></tr>
+          <tr><td>Notificaciones proactivas</td><td class="pfcol p">Parcial</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Cobro por WhatsApp</td><td class="pfcol n">—</td><td class="n">—</td><td class="p">Parcial</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+          <tr><td>Enlace de pago / suscripción</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>API / Webhooks</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td></tr>
+        </tbody>
+      </table>
+      <div class="legend"><b class="y">✓</b> lo tiene · <b class="p">Parcial</b> limitado / por mejorar · <b class="n">—</b> no lo tiene · <b class="p">n/d</b> sin dato confirmado</div>
+      <p class="src">Fuentes: hallazgos de Emma (Stripe, Tilopay, M. Pago, PayPal) + investigación propia de las regionales — Onvopay (dashboard + docs.onvopay.com/onvopay.com/loop: reintentos automáticos, "modificar o detener en cualquier momento", webhooks de renovación), Geopagos (web: "reintentos inteligentes" + tasa de recupero), CuantoApp (FAQ oficial: sin API pública) y CROEM (web: recurrente con ACH/tarjeta; reintentos/cupones no documentados públicamente → n/d). Yappy se excluye: no ofrece cobro pull del lado comercio.</p>
+    </div>
+  </section>
+
+  <!-- 9 · Tabla 2 -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Tabla comparativa 2 — PF vs plataformas de membresía</span>
+      <h2>Funcionalidades de producto y UX</h2>
+      <div class="rule"></div>
+      <table>
+        <thead>
+          <tr><th>Funcionalidad</th><th class="pf">PF</th><th>Patreon</th><th>Ko-fi</th><th>BMC</th><th>Substack</th><th>Fourthwall</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Suscripción recurrente / membresía</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Planes con beneficios</td><td class="pfcol p">Parcial</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="p">Parcial</td><td class="y">✓</td></tr>
+          <tr><td>Período de prueba (trial)</td><td class="pfcol p">Parcial</td><td class="y">✓</td><td class="p">Parcial</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Descuentos / promociones</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="p">Parcial</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Multi-frecuencia de cobro (semanal → anual)</td><td class="pfcol y">✓</td><td class="p">Parcial</td><td class="p">Parcial</td><td class="p">Parcial</td><td class="p">Parcial</td><td class="p">Parcial</td></tr>
+          <tr><td>Upgrade / downgrade de plan (sin cancelar)</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="p">Parcial</td><td class="y">✓</td><td class="p">Parcial</td></tr>
+          <tr><td>Autogestión del suscriptor (cancelar / tarjeta)</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Notificaciones / email a suscriptores</td><td class="pfcol p">Parcial</td><td class="p">Parcial</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>Pausar suscripción</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="p">Parcial</td><td class="y">✓</td><td class="p">Parcial</td><td class="n">—</td></tr>
+          <tr><td>Retención anti-cancelación (motivo / oferta)</td><td class="pfcol n">—</td><td class="p">Parcial</td><td class="n">—</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td></tr>
+          <tr><td>Contenido exclusivo / paywall</td><td class="pfcol n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+          <tr><td>White-label / marca propia</td><td class="pfcol p">Parcial</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="p">Parcial</td><td class="y">✓</td></tr>
+          <tr><td>API / Webhooks</td><td class="pfcol y">✓</td><td class="y">✓</td><td class="p">Parcial</td><td class="p">Parcial</td><td class="n">—</td><td class="p">Parcial</td></tr>
+          <tr><td>Analítica de membresía (MRR / churn)</td><td class="pfcol p">Parcial</td><td class="y">✓</td><td class="p">Parcial</td><td class="p">Parcial</td><td class="y">✓</td><td class="y">✓</td></tr>
+        </tbody>
+      </table>
+      <div class="legend"><b class="y">✓</b> disponible · <b class="p">Parcial</b> limitado o en roadmap · <b class="n">—</b> no lo tiene &nbsp;|&nbsp; BMC = Buy Me a Coffee</div>
+      <p class="src">PF: estado actual + roadmap propio. "Pausar" ya está contemplado por PF. Resto: análisis de videos y documentación oficial.</p>
+    </div>
+  </section>
+
+  <!-- 10 · Hallazgos -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Lo que sí o sí debe traer la nueva versión</span>
+      <h2>Lo que nos hace competitivos en el acto</h2>
+      <div class="rule"></div>
+      <div class="grid g3">
+        <div class="card imp"><h3>1 · Dunning inteligente</h3><p><b>Hoy:</b> reintenta 1 c/5 días (x5) a ciegas y sin avisar — la brecha más costosa en retención. <b>→ Nueva versión:</b> reintento inteligente, reintentar al instante reenviando a otra tarjeta y email/WhatsApp en cada intento.</p></div>
+        <div class="card imp"><h3>2 · Autoservicio del suscriptor</h3><p><b>Hoy:</b> no existe; el comercio hace todo y cambiar de plan obliga a cancelar y recrear. <b>→ Nueva versión:</b> portal donde el cliente actualiza su tarjeta, ve sus facturas y pausa/cambia/cancela solo.</p></div>
+        <div class="card imp"><h3>3 · Trial real (Primer Cargo)</h3><p><b>Hoy:</b> se simula con "Primer pago = No" + fecha futura → poco intuitivo. <b>→ Nueva versión:</b> toggle claro "¿Ofrecer prueba?" con duración/tipo y 1er cobro automático al vencer.</p></div>
+        <div class="card imp"><h3>4 · Editar suscripción sin cancelar</h3><p><b>Hoy:</b> cambiar monto, plan, frecuencia o fecha obliga a cancelar y crear otra. <b>→ Nueva versión:</b> upgrade/downgrade y edición en vivo de la suscripción.</p></div>
+        <div class="card imp"><h3>5 · Planes con afiliación y beneficios</h3><p><b>Hoy:</b> el plan solo pre-llena monto+periodo; el cliente no se afilia solo y no hay beneficios. <b>→ Nueva versión:</b> página de plan con autoinscripción del cliente, beneficios e imagen.</p></div>
+        <div class="card imp"><h3>6 · Notificaciones + statement propio</h3><p><b>Hoy:</b> notificaciones parciales y el statement muestra PF → disputas/contracargos. <b>→ Nueva versión:</b> avisos del ciclo de vida (email/WhatsApp) y statement/branding del comercio.</p></div>
+      </div>
+      <div class="callout dark" style="margin-top:12px;"><b>Y para frenar el churn:</b> encuesta de motivo <b>obligatoria</b> al cancelar (si no la llena, no se cancela) + oferta de pausa/descuento en ese momento · cupones/descuentos · analítica nativa (MRR/churn) · y palancas locales vistas en CuantoApp: <b>plan de pagos/cuotas</b> y <b>cobro por WhatsApp</b>.</div>
+    </div>
+  </section>
+
+  <!-- 13 · Roadmap interno módulos -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker i">Roadmap interno · no proviene del benchmark</span>
+      <h2>Funcionalidades ya mapeadas por nosotros</h2>
+      <div class="rule i"></div>
+      <div class="grid g3">
+        <div class="card"><div class="colhead">Suscripciones</div><ul class="clean i tight"><li>Creación de productos y planes</li><li>Gestión de clientes</li><li>Crear y administrar suscripciones</li><li>Cancelar · pausar · mes gratis · ver cargos</li><li>Suscripción sin fecha de fin</li><li>Paquetes con consumo (ej: clases de spinning)</li></ul></div>
+        <div class="card"><div class="colhead">Dashboard del comercio</div><ul class="clean i tight"><li>Clientes y suscripciones activas</li><li>Cobros aprobados / rechazados</li><li>Ventas por mes</li><li>Suscripciones próximas a vencer</li><li>Nuevos clientes · conversión enlace→suscripción</li></ul></div>
+        <div class="card"><div class="colhead">Cobros &amp; Checkout</div><ul class="clean i tight"><li>Enlaces de pago (único y recurrente)</li><li>Checkout de plan / producto · QR</li><li>Transacciones · reclamos · estado de cuenta</li><li>Fraude IA</li></ul></div>
+        <div class="card"><div class="colhead">Retargeting</div><ul class="clean i tight"><li>Retarget de declinadas (otro método / actualizar tarjeta)</li><li>Upsell (upgrade de plan)</li><li>Retarget de canceladas</li><li>Aviso de suscripciones por vencer</li></ul></div>
+        <div class="card"><div class="colhead">Fidelización &amp; Notif.</div><ul class="clean i tight"><li>Promociones y descuentos en planes/productos</li><li>Gamification</li><li>Push a clientes</li><li>Comprobantes de pago y de suscripción</li></ul></div>
+        <div class="card"><div class="colhead">Integraciones &amp; Config.</div><ul class="clean i tight"><li>API Pey · Factura Electrónica · ecommerce</li><li>WhatsApp · N8N</li><li>Sucursales · usuarios · roles</li><li>Branding (colores) · campos personalizados</li></ul></div>
+      </div>
+      <div class="callout indigo" style="margin-top:12px;">Encuestas ya contempladas por nosotros: <b>"Encuesta de funcionalidades por WhatsApp"</b> y <b>"¿Por qué te dejan tus clientes?"</b> (clientes inactivos). IA: Smart Onboarding, Analytics IA, Fraude IA.</div>
+      <p class="src">Fuente: documento interno Funcionalidades Rec_Sus (mapeo propio de PF, independiente del benchmark).</p>
+    </div>
+  </section>
+
+  <!-- KPIs combinados: comercio + interno -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">KPIs &amp; métricas de recurrencias</span>
+      <h2>Qué ve cada comercio y qué medimos internamente</h2>
+      <div class="rule"></div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="colhead">Cada comercio · portal de suscripciones</div>
+          <ul class="clean tight">
+            <li><b>Suscripciones activas</b> — vigentes y su variación</li>
+            <li><b>Clientes activos</b> — con al menos una suscripción</li>
+            <li><b>MRR / ingreso recurrente</b> mensual</li>
+            <li><b>Cobros aprobados vs rechazados</b> — tasa de aprobación</li>
+            <li><b>Churn / bajas del mes</b> — % de cancelaciones</li>
+            <li><b>Suscripciones prontas a vencer</b> — tabla de vencimientos</li>
+            <li><b>Nuevos clientes por mes</b></li>
+            <li><b>Conversión enlace → suscripción</b> — aperturas vs finalizadas</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="colhead">Interno · QuickSight (negocio PF)</div>
+          <ul class="clean tight">
+            <li><b>GMV recurrente procesado</b> — volumen total</li>
+            <li><b>MRR agregado y su crecimiento mensual</b></li>
+            <li><b>Comercios activos con suscripciones</b> — adopción</li>
+            <li><b>Suscripciones activas totales</b> y su tendencia</li>
+            <li><b>Churn de suscriptores y de comercios</b> — ambos lados</li>
+            <li><b>Tasa de aprobación global</b> — rechazos por causa</li>
+            <li><b>Efectividad del dunning</b> — % recuperado tras fallo</li>
+            <li><b>Adopción de features</b> — trial, cupones, pausa, autoservicio</li>
+            <li><b>Cohortes de retención por rubro · ARPU</b> (planes que define cada comercio)</li>
+          </ul>
+        </div>
+      </div>
+      <p class="src">Base: roadmap interno (Funcionalidades Rec_Sus) + KPIs estándar de negocios recurrentes (MRR, churn). La vista interna se piensa para dashboards en Amazon QuickSight.</p>
+    </div>
+  </section>
+
+  <!-- Última · Encuesta / entrevista (propuesta + guion de 14 preguntas) -->
+  <section data-document-role="page" class="slide">
+    <div class="inner">
+      <span class="kicker">Encuesta / entrevista · comercios de PF</span>
+      <h2>Entrevista telefónica: muestra, formato y guion</h2>
+      <div class="rule"></div>
+      <div class="grid g3" style="margin-bottom:10px;">
+        <div class="card"><div class="colhead">Objetivo</div><p style="font-size:11px;color:var(--ink);margin-top:3px;">Entender cómo gestionan sus recurrencias, la fricción actual y qué los haría usar más PF.</p></div>
+        <div class="card"><div class="colhead">Muestra</div><p style="font-size:11px;color:var(--ink);margin-top:3px;">Solo clientes de PF · <b>49 comercios</b> (Comercios_REC) + insumos del <b>equipo de ventas</b>.</p></div>
+        <div class="card"><div class="colhead">Formato</div><p style="font-size:11px;color:var(--ink);margin-top:3px;"><b>Solo por llamada</b> (no formulario) · 10–15 min · preguntas abiertas.</p></div>
+      </div>
+      <div class="grid g2" style="gap:16px;">
+        <div>
+          <span class="tag">Proceso actual</span>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>1.</b> Contame cómo funciona una suscripción en tu negocio.</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>2.</b> ¿Quién crea la suscripción: vos, tu equipo o el propio cliente?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>3.</b> ¿Qué información necesitás configurar para crearla? (monto, frecuencia, fecha de cobro, plan, método de pago…)</p>
+          <span class="tag" style="margin-top:8px;">Experiencia y fricción</span>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>4.</b> ¿Qué es lo que más te gusta de cómo gestionás tus recurrencias actualmente?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>5.</b> ¿Qué es lo que más te molesta o qué sentís que debería funcionar mejor?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>6.</b> ¿Qué tareas relacionadas con las suscripciones tenés que hacer manualmente hoy?</p>
+        </div>
+        <div>
+          <span class="tag">Pagos fallidos</span>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>7.</b> Cuando un pago recurrente falla, ¿qué sucede desde que se rechaza hasta que el problema se resuelve?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>8.</b> ¿Cómo te enterás de que un pago falló y cómo se entera tu cliente?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>9.</b> ¿Qué tan importante es recuperar automáticamente los pagos que fallan? ¿Cómo lo hacés hoy?</p>
+          <span class="tag" style="margin-top:8px;">Cambios y ciclo de vida</span>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>10.</b> ¿Qué hacés cuando un cliente quiere cambiar el monto, plan, frecuencia o fecha de cobro?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>11.</b> ¿Qué hacés cuando un cliente quiere pausar, reactivar o cancelar su suscripción?</p>
+          <span class="tag" style="margin-top:8px;">Cierre</span>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>12.</b> Si pudieras cambiar o automatizar una sola cosa de tus cobros recurrentes, ¿qué sería?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>13.</b> ¿Qué te haría empezar a usar (o usar más) las suscripciones de PF y dejar tu método actual?</p>
+          <p class="q" style="font-size:11px;margin:5px 0;"><b>14.</b> ¿Participarías en un piloto de las nuevas funcionalidades?</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="foot">
+  <div>Benchmark de Recurrencias y Suscripciones · PagueloFácil · 16:9</div>
+  <div class="nav">
+    <button onclick="go(-1)">←</button>
+    <span>Página <b id="cur">1</b> / <span id="tot">13</span></span>
+    <button onclick="go(1)">→</button>
+  </div>
+  <div>← → para navegar · ⌘/Ctrl+P para exportar a PDF (carta)</div>
+</div>
+
+<script>
+  var deck=document.getElementById('deck');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  document.getElementById('tot').textContent=slides.length;
+  function current(){
+    var mid=deck.scrollTop+deck.clientHeight/2;
+    var best=0,bd=Infinity;
+    for(var i=0;i<slides.length;i++){
+      var c=slides[i].offsetTop+slides[i].offsetHeight/2;
+      var d=Math.abs(c-mid);
+      if(d<bd){bd=d;best=i;}
+    }
+    return best;
+  }
+  function go(dir){
+    var i=Math.max(0,Math.min(slides.length-1,current()+dir));
+    slides[i].scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  deck.addEventListener('scroll',function(){
+    document.getElementById('cur').textContent=current()+1;
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();go(1);}
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();go(-1);}
+  });
+</script>
+</body>
+</html>
